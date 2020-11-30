@@ -1,6 +1,20 @@
 /*
 App declarations
+
+https://stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
 */
+
+var panelsObj = {}
+
+function makeid(length) {
+  var result = '';
+  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var charactersLength = characters.length;
+  for (var i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+}
 
 let panels = [
   document.querySelector('.left-panel .files-info'),
@@ -16,34 +30,42 @@ function replacePanelFiles(panelIndex, directories, files) {
     console.log("ERROR - invalid panel index!");
     return;
   }
+
+  panelsObj[panelIndex] = {}
+
   panels[panelIndex].innerHTML = '';
-  console.log(panels[panelIndex]);
   for (let i = 0; i < directories.length; ++i) {
+    let id = 'element' + makeid(5);
+    panelsObj[panelIndex][id] = directories[i];
+
     panels[panelIndex].innerHTML += `
-    <div class="file-info">
+    <div class="file-info" id="${id}" ondblclick="onObjectDoubleClicked(event, ${panelIndex}, '${id}')">
       <div class="column-type-1">
-        ${directories[i]}
+        ${directories[i].name}
       </div>
       <div class="column-type-2">
         &lt;DIR&gt;
       </div>
       <div class="column-type-3">
-        07/14/2018 22:40
+        ${directories[i].created_date}
       </div>
     </div>
     `;
   }
   for (let i = 0; i < files.length; ++i) {
+    let id = 'element' + makeid(5);
+    panelsObj[panelIndex][id] = files[i];
+
     panels[panelIndex].innerHTML += `
-    <div class="file-info">
+    <div class="file-info" id="${id}" ondblclick="onObjectDoubleClicked(event, ${panelIndex}, ${id})">
       <div class="column-type-1">
-        ${files[i]}
+        ${files[i].name}
       </div>
       <div class="column-type-2">
-        &lt;FILE&gt;
+        ${files[i].size}
       </div>
       <div class="column-type-3">
-        07/14/2018 22:40
+        ${files[i].created_date}
       </div>
     </div>
     `;
@@ -51,7 +73,6 @@ function replacePanelFiles(panelIndex, directories, files) {
 }
 
 function replacePanelInfo(panelIndex, panelInfo) {
-  console.log(panelInfo);
   replacePanelFiles(panelIndex, panelInfo.dirs, panelInfo.files);
 }
 
@@ -159,3 +180,20 @@ function initApp() {
 }
 
 window.onload = initApp();
+
+/*
+Event Handlers
+*/
+
+function onObjectDoubleClicked(evt, panelIndex, id) {
+  let dirName = panelsObj[panelIndex][id].name;
+  let url = encodeURIComponent("/api/dirs/" + panelIndex + "/" + dirName);
+  console.log(url);
+  httpGET(url, (res) => {
+    console.log(res);
+    replacePanelInfo(panelIndex, res.res.dir_content);
+  }, (err) => {
+    console.log(err);
+  });
+  evt.stopPropagation();
+}

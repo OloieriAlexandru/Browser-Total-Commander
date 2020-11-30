@@ -61,6 +61,37 @@ def get_all():
   )))
 
 
+@app.route("/api/dirs/<int:panel_index>/<string:dir_path>", methods=['GET'])
+def get_dir_contents(panel_index, dir_path):
+  print(dir_path)
+  if not (0 <= panel_index < 2):
+    return {}
+  if not request.headers.get('x-panel-paths-token'):
+    return {}
+  res = token_helper.decode_panels_paths(
+      request.headers.get('x-panel-paths-token'))
+  tot_comm = total_commander.TotalCommander(res[0], res[1])
+  if not tot_comm.change_dir(panel_index, dir_path):
+    return {}
+
+  panel_content = tot_comm.get_all(panel_index)
+  panel_res = {
+      'dirs': panel_content[0],
+      'files': panel_content[1]
+  }
+
+  return jsonify(add_token({
+      'dir_content': panel_res
+  }, token_helper.encode_panels_total_commander(
+      tot_comm
+  )))
+
+
+@app.route("/api/files/<int:panel_index>/<string:file_name>", methods=['GET'])
+def get_file_content(panel_index, file_name):
+  pass
+
+
 @app.route("/api/files", methods=['POST'])
 def create_file():
   pass

@@ -1,9 +1,16 @@
+# Documentation:
+# https://www.w3resource.com/python-exercises/python-basic-exercise-64.php
+# https://stackoverflow.com/questions/2860153/how-do-i-get-the-parent-directory-in-python/29137365
+
 import os
+import time
+import pathlib
 
 DEFAULT_PATH = 'D:\\'
 
+
 class TotalCommander:
-    def __init__(self, path_left, path_right, default = False):
+    def __init__(self, path_left, path_right, default=False):
         self.paths = []
         if default:
             self.paths.append(DEFAULT_PATH)
@@ -26,21 +33,42 @@ class TotalCommander:
             return False
         return True
 
+    def change_dir(self, active_panel, dir):
+        new_path = os.path.join(self.paths[active_panel], dir)
+        if not os.path.isdir(new_path):
+            return False
+        self.paths[active_panel] = new_path
+        return True
+
     def get_paths(self):
         return (self.paths[0], self.paths[1])
 
     def get_all(self, active_panel):
         if not self.valid_active_panel(active_panel):
             return False
-        
+
+        parent_path = pathlib.Path(self.paths[active_panel])
+
         directories = []
         files = []
+
+        directories.append({
+            'name': '..',
+            'created_date': time.ctime(os.path.getctime(parent_path.parent))
+        })
 
         for f in os.listdir(self.paths[active_panel]):
             full_path = os.path.join(self.paths[active_panel], f)
             if os.path.isdir(full_path):
-                directories.append(f)
+                directories.append({
+                    'name': f,
+                    'created_date':  time.ctime(os.path.getctime(full_path))
+                })
             else:
-                files.append(f)
+                files.append({
+                    'name': f,
+                    'size': os.path.getsize(full_path),
+                    'created_date':  time.ctime(os.path.getctime(full_path))
+                })
 
         return (directories, files)
