@@ -33,8 +33,8 @@ class TotalCommander:
             return False
         return True
 
-    def change_dir(self, active_panel, dir):
-        new_path = os.path.join(self.paths[active_panel], dir)
+    def change_dir(self, active_panel, ddir):
+        new_path = os.path.join(self.paths[active_panel], ddir)
         if not os.path.isdir(new_path):
             return False
         self.paths[active_panel] = new_path
@@ -42,6 +42,18 @@ class TotalCommander:
 
     def get_paths(self):
         return (self.paths[0], self.paths[1])
+
+    def check_file_existence(self, active_panel, file_name):
+        file_path = os.path.join(self.paths[active_panel], file_name)
+        if not os.path.isfile(file_path):
+            return False
+        return True
+
+    def get_file_content(self, active_panel, file_name):
+        file_path = os.path.join(self.paths[active_panel], file_name)
+        with open(file_path, "r") as file_in:
+            return '\n'.join([el.strip() for el in file_in.readlines()])
+        return []
 
     def get_all(self, active_panel):
         if not self.valid_active_panel(active_panel):

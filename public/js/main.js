@@ -4,6 +4,12 @@ App declarations
 https://stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
 */
 
+var fileContentModal = document.getElementById('file-content-modal');
+var fileContentModalText = document.querySelector('#file-content-modal .modal-content .modal-body');
+
+const TYPE_DIR = 1;
+const TYPE_FILE = 2;
+
 var panelsObj = {}
 
 function makeid(length) {
@@ -36,6 +42,7 @@ function replacePanelFiles(panelIndex, directories, files) {
   panels[panelIndex].innerHTML = '';
   for (let i = 0; i < directories.length; ++i) {
     let id = 'element' + makeid(5);
+    directories[i].type = TYPE_DIR;
     panelsObj[panelIndex][id] = directories[i];
 
     panels[panelIndex].innerHTML += `
@@ -54,10 +61,11 @@ function replacePanelFiles(panelIndex, directories, files) {
   }
   for (let i = 0; i < files.length; ++i) {
     let id = 'element' + makeid(5);
+    files[i].type = TYPE_FILE;
     panelsObj[panelIndex][id] = files[i];
 
     panels[panelIndex].innerHTML += `
-    <div class="file-info" id="${id}" ondblclick="onObjectDoubleClicked(event, ${panelIndex}, ${id})">
+    <div class="file-info" id="${id}" ondblclick="onObjectDoubleClicked(event, ${panelIndex}, '${id}')">
       <div class="column-type-1">
         ${files[i].name}
       </div>
@@ -74,6 +82,18 @@ function replacePanelFiles(panelIndex, directories, files) {
 
 function replacePanelInfo(panelIndex, panelInfo) {
   replacePanelFiles(panelIndex, panelInfo.dirs, panelInfo.files);
+}
+
+function showFileContent(fileContent) {
+  fileContentModalText.innerHTML = `<pre>${fileContent}</pre>`;
+  // fileContentModalText.innerHTML = `<code>${fileContent}</code>`;
+
+  fileContentModal.style = "display: flex; flex-direction: column; align-items: center; justify-content: center";
+
+}
+
+function closeFileContentModal() {
+  fileContentModal.style = "";
 }
 
 /*
@@ -171,7 +191,6 @@ function httpDELETE(url, res, err) {
 
 function initApp() {
   httpGET("/api/all", (res) => {
-    console.log(res);
     replacePanelInfo(0, res.res.left_panel);
     replacePanelInfo(1, res.res.right_panel);
   }, (err) => {
@@ -181,19 +200,34 @@ function initApp() {
 
 window.onload = initApp();
 
+window.onclick = function (event) {
+  if (event.target == fileContentModal) {
+    closeFileContentModal();
+  }
+}
+
 /*
 Event Handlers
 */
 
 function onObjectDoubleClicked(evt, panelIndex, id) {
-  let dirName = panelsObj[panelIndex][id].name;
-  let url = encodeURIComponent("/api/dirs/" + panelIndex + "/" + dirName);
-  console.log(url);
-  httpGET(url, (res) => {
-    console.log(res);
-    replacePanelInfo(panelIndex, res.res.dir_content);
-  }, (err) => {
-    console.log(err);
-  });
+  let type = panelsObj[panelIndex][id].type;
+  if (type == TYPE_DIR) {
+    let dirName = panelsObj[panelIndex][id].name;
+    let url = encodeURIComponent("/api/dirs/" + panelIndex + "/" + dirName);
+    httpGET(url, (res) => {
+      replacePanelInfo(panelIndex, res.res.dir_content);
+    }, (err) => {
+      console.log(err);
+    });
+  } else if (type == TYPE_FILE) {
+    let fileName = panelsObj[panelIndex][id].name;
+    let url = encodeURIComponent("/api/files/" + panelIndex + "/" + fileName);
+    httpGET(url, (res) => {
+      showFileContent(res.res.file_content);
+    }, (err) => {
+      console.log(err);
+    });
+  }
   evt.stopPropagation();
 }

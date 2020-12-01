@@ -1,5 +1,6 @@
 # Documentation:
 # https://flask.palletsprojects.com/en/1.1.x/quickstart/#a-minimal-application
+# https://www.kite.com/python/answers/how-to-get-json-from-a-request-using-flask-in-python
 
 from flask import Flask
 from flask import render_template
@@ -16,6 +17,9 @@ app = Flask(__name__,
             template_folder='public')
 
 
+HEADER_TOKEN_STR = 'x-panel-paths-token'
+
+
 def add_token(obj, token):
   obj['token'] = token.decode("utf-8")
   return obj
@@ -29,9 +33,9 @@ def index():
 @app.route("/api/all", methods=['GET'])
 def get_all():
   tot_comm = None
-  if request.headers.get('x-panel-paths-token'):
+  if request.headers.get(HEADER_TOKEN_STR):
     res = token_helper.decode_panels_paths(
-        request.headers.get('x-panel-paths-token'))
+        request.headers.get(HEADER_TOKEN_STR))
     if res is None:
       return {}
     tot_comm = total_commander.TotalCommander(res[0], res[1])
@@ -66,11 +70,13 @@ def get_dir_contents(panel_index, dir_path):
   print(dir_path)
   if not (0 <= panel_index < 2):
     return {}
-  if not request.headers.get('x-panel-paths-token'):
+  if not request.headers.get(HEADER_TOKEN_STR):
     return {}
   res = token_helper.decode_panels_paths(
-      request.headers.get('x-panel-paths-token'))
+      request.headers.get(HEADER_TOKEN_STR))
   tot_comm = total_commander.TotalCommander(res[0], res[1])
+  if not tot_comm.init():
+    return {}
   if not tot_comm.change_dir(panel_index, dir_path):
     return {}
 
@@ -89,7 +95,26 @@ def get_dir_contents(panel_index, dir_path):
 
 @app.route("/api/files/<int:panel_index>/<string:file_name>", methods=['GET'])
 def get_file_content(panel_index, file_name):
-  pass
+  if not (0 <= panel_index < 2):
+    return {}
+  if not request.headers.get(HEADER_TOKEN_STR):
+    return {}
+  res = token_helper.decode_panels_paths(
+      request.headers.get(HEADER_TOKEN_STR))
+  tot_comm = total_commander.TotalCommander(res[0], res[1])
+  if not tot_comm.init():
+    return {}
+  if not tot_comm.check_file_existence(panel_index, file_name):
+    return {}
+
+  file_content = tot_comm.get_file_content(panel_index, file_name)
+  file_res = {
+      'file_content': file_content
+  }
+
+  return jsonify(add_token(file_res, token_helper.encode_panels_total_commander(
+      tot_comm
+  )))
 
 
 @app.route("/api/files", methods=['POST'])
