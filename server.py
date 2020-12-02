@@ -1,6 +1,5 @@
 # Documentation:
 # https://flask.palletsprojects.com/en/1.1.x/quickstart/#a-minimal-application
-# https://www.kite.com/python/answers/how-to-get-json-from-a-request-using-flask-in-python
 
 from flask import Flask
 from flask import render_template
@@ -9,6 +8,7 @@ from flask import jsonify
 
 import total_commander
 import token_helper
+import validator
 
 PORT = 3333
 
@@ -16,6 +16,7 @@ app = Flask(__name__,
             static_folder='public',
             template_folder='public')
 
+body_validator = validator.Validator()
 
 HEADER_TOKEN_STR = 'x-panel-paths-token'
 
@@ -23,6 +24,14 @@ HEADER_TOKEN_STR = 'x-panel-paths-token'
 def add_token(obj, token):
   obj['token'] = token.decode("utf-8")
   return obj
+
+
+def create_success_response(success, tot_comm):
+  return jsonify(add_token({
+      'success': success
+  }, token_helper.encode_panels_total_commander(
+      tot_comm
+  )))
 
 
 @app.route("/")
@@ -117,14 +126,37 @@ def get_file_content(panel_index, file_name):
   )))
 
 
-@app.route("/api/files", methods=['POST'])
-def create_file():
+@app.route("/api/dirs/<int:panel_index>", methods=['POST'])
+def create_dir(panel_index):
   pass
 
 
-@app.route("/api/files/<file_path>", methods=['PUT'])
-def update_file(file_path):
+@app.route("/api/files/<int:panel_index>", methods=['POST'])
+def create_file(panel_index):
   pass
+
+
+@app.route("/api/files/<int:panel_index>/<string:file_name>", methods=['PUT'])
+def update_file(panel_index, file_name):
+  if not (0 <= panel_index < 2):
+    return {}
+  if not request.headers.get(HEADER_TOKEN_STR):
+    return {}
+  res = token_helper.decode_panels_paths(
+      request.headers.get(HEADER_TOKEN_STR))
+  tot_comm = total_commander.TotalCommander(res[0], res[1])
+  if not tot_comm.init():
+    return {}
+  # the file doesn't exist
+  if not body_validator.validate_update_file_req_body(request.json):
+    return {}
+
+  if not tot_comm.check_file_existence(panel_index, file_name):
+    return {}
+
+  tot_comm.update_file_content(panel_index, file_name, request.json['content'])
+
+  return create_success_response('true', tot_comm)
 
 
 if __name__ == "__main__":

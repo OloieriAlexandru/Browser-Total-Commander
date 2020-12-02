@@ -55,6 +55,11 @@ class TotalCommander:
             return '\n'.join([el.strip() for el in file_in.readlines()])
         return []
 
+    def update_file_content(self, active_panel, file_name, file_content):
+        file_path = os.path.join(self.paths[active_panel], file_name)
+        with open(file_path, "w") as file_out:
+            file_out.write(file_content)
+
     def get_all(self, active_panel):
         if not self.valid_active_panel(active_panel):
             return False

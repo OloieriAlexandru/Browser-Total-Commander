@@ -6,11 +6,60 @@ https://stackoverflow.com/questions/1349404/generate-random-string-characters-in
 
 var fileContentModal = document.getElementById('file-content-modal');
 var fileContentModalText = document.querySelector('#file-content-modal .modal-content .modal-body');
+var fileContentModalOpen = false;
+var fileContentModalPanelIndex = null;
+var fileContentModalFileName = null;
 
 const TYPE_DIR = 1;
 const TYPE_FILE = 2;
 
-var panelsObj = {}
+var buttonCtrlPressed = false;
+var buttonShiftPressed = false;
+
+const BUTTON_CTRL = 'Control';
+const BUTTON_SHIFT = 'Shift';
+
+const BUTTON_SAVE_FILE = 's';
+
+const BUTTON_EXIT_EDIT_FILE = 'Escape';
+const BUTTON_EDIT_FILE = '4';
+const BUTTON_COPY_FILES = '5';
+const BUTTON_RENAME_FILE_FOLDER = '6';
+const BUTTON_CREATE_FOLDER = '7';
+
+var keyPressUpCallbacks = {};
+var keyPressDownCallbacks = {};
+var panelsObj = {};
+
+class KeyPressInfo {
+  constructor(callback, requireShift, requireCtrl) {
+    this.callback = callback;
+    this.requireShift = requireShift;
+    this.requireCtrl = requireCtrl;
+  }
+}
+
+class KeyPressInfoBuilder {
+  constructor(callback) {
+    this.callback = callback;
+    this.requireShift = false;
+    this.requireCtrl = false;
+  }
+
+  reqShift() {
+    this.requireShift = true;
+    return this;
+  }
+
+  reqCtrl() {
+    this.requireCtrl = true;
+    return this;
+  }
+
+  build() {
+    return new KeyPressInfo(this.callback, this.requireShift, this.requireCtrl);
+  }
+}
 
 function makeid(length) {
   var result = '';
@@ -85,15 +134,19 @@ function replacePanelInfo(panelIndex, panelInfo) {
 }
 
 function showFileContent(fileContent) {
-  fileContentModalText.innerHTML = `<pre>${fileContent}</pre>`;
-  // fileContentModalText.innerHTML = `<code>${fileContent}</code>`;
+  fileContentModalText.value = fileContent;
 
   fileContentModal.style = "display: flex; flex-direction: column; align-items: center; justify-content: center";
 
+  fileContentModalOpen = true;
 }
 
 function closeFileContentModal() {
   fileContentModal.style = "";
+
+  fileContentModalOpen = false;
+  fileContentModalPanelIndex = null;
+  fileContentModalFileName = null;
 }
 
 /*
@@ -196,6 +249,27 @@ function initApp() {
   }, (err) => {
     console.log(err);
   })
+
+  initKeyPressDownCallbacks();
+  initKeyPressUpCallbacks();
+}
+
+function initKeyPressDownCallbacks() {
+  keyPressDownCallbacks[BUTTON_CTRL] = new KeyPressInfoBuilder(keyPressDownCallbackControlPressed).build();
+  keyPressDownCallbacks[BUTTON_SHIFT] = new KeyPressInfoBuilder(keyPressDownCallbackShiftPressed).build();
+
+  keyPressDownCallbacks[BUTTON_SAVE_FILE] = new KeyPressInfoBuilder(keyPressDownCallbackSaveFile).reqCtrl().build();
+}
+
+function initKeyPressUpCallbacks() {
+  keyPressUpCallbacks[BUTTON_CTRL] = new KeyPressInfoBuilder(keyPressUpCallbackControlReleased).build();
+  keyPressUpCallbacks[BUTTON_SHIFT] = new KeyPressInfoBuilder(keyPressUpCallbackShiftReleased).build();
+
+  keyPressUpCallbacks[BUTTON_EXIT_EDIT_FILE] = new KeyPressInfoBuilder(keyPressUpCallbackExitEditFile).build();
+  keyPressUpCallbacks[BUTTON_EDIT_FILE] = new KeyPressInfoBuilder(keyPressUpCallbackEditFile).build();
+  keyPressUpCallbacks[BUTTON_COPY_FILES] = new KeyPressInfoBuilder(keyPressUpCallbackCopyFiles).build();
+  keyPressUpCallbacks[BUTTON_RENAME_FILE_FOLDER] = new KeyPressInfoBuilder(keyPressUpCallbackRenameFileFolder).build();
+  keyPressUpCallbacks[BUTTON_CREATE_FOLDER] = new KeyPressInfoBuilder(keyPressUpCallbackCreateFolder).build();
 }
 
 window.onload = initApp();
@@ -206,28 +280,130 @@ window.onclick = function (event) {
   }
 }
 
+function executeCallbackHandler(event, keyPressInfo) {
+  let totalConditions = 0;
+  let fulfilledConditions = 0;
+
+  if (keyPressInfo.requireCtrl) {
+    ++totalConditions;
+    if (buttonCtrlPressed) {
+      ++fulfilledConditions;
+    }
+  }
+
+  if (keyPressInfo.requireShift) {
+    ++totalConditions;
+    if (buttonShiftPressed) {
+      ++fulfilledConditions;
+    }
+  }
+
+  if (totalConditions != fulfilledConditions) {
+    return;
+  }
+  event.preventDefault();
+  keyPressInfo.callback();
+}
+
+window.onkeydown = function (event) {
+  if (event != undefined && event.key in keyPressDownCallbacks) {
+    executeCallbackHandler(event, keyPressDownCallbacks[event.key]);
+  }
+}
+
+window.onkeyup = function (event) {
+  if (event != undefined && event.key in keyPressUpCallbacks) {
+    executeCallbackHandler(event, keyPressUpCallbacks[event.key]);
+  }
+}
+
 /*
 Event Handlers
 */
 
+function keyPressDownCallbackControlPressed() {
+  buttonCtrlPressed = true;
+}
+
+function keyPressDownCallbackShiftPressed() {
+  buttonShiftPressed = true;
+}
+
+function keyPressUpCallbackControlReleased() {
+  buttonCtrlPressed = false;
+}
+
+function keyPressUpCallbackShiftReleased() {
+  buttonShiftPressed = false;
+}
+
+function keyPressUpCallbackExitEditFile() {
+  if (fileContentModalOpen) {
+    closeFileContentModal();
+  }
+}
+
+function keyPressUpCallbackEditFile() {
+
+}
+
+function keyPressUpCallbackRenameFileFolder() {
+
+}
+
+function keyPressUpCallbackCreateFolder() {
+
+}
+
+function keyPressUpCallbackCopyFiles() {
+
+}
+
+function keyPressDownCallbackSaveFile() {
+  if (!fileContentModal) {
+    return;
+  }
+
+  let url = encodeURIComponent("/api/files/" + fileContentModalPanelIndex + "/" + fileContentModalFileName);
+  httpPUT(url, {
+    'wrong-content': fileContentModalText.value
+  }, (res) => {
+    console.log(res);
+  }, (err) => {
+    console.log(err);
+  });
+}
+
+function changeDirectory(panelIndex, id) {
+  let dirName = panelsObj[panelIndex][id].name;
+  let url = encodeURIComponent("/api/dirs/" + panelIndex + "/" + dirName);
+  httpGET(url, (res) => {
+    replacePanelInfo(panelIndex, res.res.dir_content);
+  }, (err) => {
+    console.log(err);
+  });
+}
+
+function editFile(panelIndex, id) {
+  let fileName = panelsObj[panelIndex][id].name;
+  let url = encodeURIComponent("/api/files/" + panelIndex + "/" + fileName);
+  httpGET(url, (res) => {
+    fileContentModalPanelIndex = panelIndex;
+    fileContentModalFileName = fileName;
+
+    showFileContent(res.res.file_content);
+  }, (err) => {
+    console.log(err);
+  });
+}
+
 function onObjectDoubleClicked(evt, panelIndex, id) {
   let type = panelsObj[panelIndex][id].type;
   if (type == TYPE_DIR) {
-    let dirName = panelsObj[panelIndex][id].name;
-    let url = encodeURIComponent("/api/dirs/" + panelIndex + "/" + dirName);
-    httpGET(url, (res) => {
-      replacePanelInfo(panelIndex, res.res.dir_content);
-    }, (err) => {
-      console.log(err);
-    });
+    changeDirectory(panelIndex, id);
+    evt.stopPropagation();
   } else if (type == TYPE_FILE) {
-    let fileName = panelsObj[panelIndex][id].name;
-    let url = encodeURIComponent("/api/files/" + panelIndex + "/" + fileName);
-    httpGET(url, (res) => {
-      showFileContent(res.res.file_content);
-    }, (err) => {
-      console.log(err);
-    });
+    editFile(panelIndex, id);
+    evt.stopPropagation();
   }
-  evt.stopPropagation();
 }
