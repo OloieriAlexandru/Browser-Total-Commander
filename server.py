@@ -76,7 +76,6 @@ def get_all():
 
 @app.route("/api/dirs/<int:panel_index>/<string:dir_path>", methods=['GET'])
 def get_dir_contents(panel_index, dir_path):
-  print(dir_path)
   if not (0 <= panel_index < 2):
     return {}
   if not request.headers.get(HEADER_TOKEN_STR):

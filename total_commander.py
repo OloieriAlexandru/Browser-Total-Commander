@@ -34,7 +34,7 @@ class TotalCommander:
         return True
 
     def change_dir(self, active_panel, ddir):
-        new_path = os.path.join(self.paths[active_panel], ddir)
+        new_path = os.path.normpath(os.path.join(self.paths[active_panel], ddir))
         if not os.path.isdir(new_path):
             return False
         self.paths[active_panel] = new_path
