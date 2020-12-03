@@ -18,6 +18,43 @@ var fileContentModalOpen = false;
 var fileContentModalPanelIndex = null;
 var fileContentModalFileName = null;
 
+var confirmModal = document.getElementById('confirm-modal');
+var confirmModalText = document.querySelector('#confirm-modal .modal-content .modal-body');
+var confirmModalOpen = false;
+var confirmModalPanelIndex = null;
+var confirmModalFileName = null;
+var confirmModalCallback = null;
+
+var inputModal = document.getElementById('input-modal');
+var inputModalText = document.querySelector('#input-modal .modal-content .prompt');
+var inputModalInput = document.querySelector('#input-modal .modal-content .modal-input');
+var inputModalOpen = false;
+var inputModalPanelIndex = null;
+var inputModalFileName = null;
+var inputModalCallback = null;
+
+function fileContentModalIsOpen() {
+  return fileContentModalOpen;
+}
+
+function confirmModalIsOpen() {
+  return confirmModalOpen;
+}
+
+function inputModalIsOpen() {
+  return inputModalOpen;
+}
+
+function screenIsMain() {
+  const checks = [fileContentModalIsOpen];
+  for (let i = 0; i < checks.length; ++i) {
+    if (checks[i]()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 const TYPE_DIR = 1;
 const TYPE_FILE = 2;
 
@@ -45,10 +82,20 @@ var keyPressDownCallbacks = {};
 var panelsObj = {};
 
 class KeyPressInfo {
-  constructor(callback, requireShift, requireCtrl) {
+  constructor(callback, requireShift, requireCtrl, checkCallbacks) {
     this.callback = callback;
     this.requireShift = requireShift;
     this.requireCtrl = requireCtrl;
+    this.checkCallbacks = checkCallbacks;
+  }
+
+  allChecksPass() {
+    for (let i = 0; i < this.checkCallbacks.length; ++i) {
+      if (!this.checkCallbacks[i]()) {
+        return false;
+      }
+    }
+    return true;
   }
 }
 
@@ -57,6 +104,7 @@ class KeyPressInfoBuilder {
     this.callback = callback;
     this.requireShift = false;
     this.requireCtrl = false;
+    this.checkCallbacks = [];
   }
 
   reqShift() {
@@ -69,8 +117,13 @@ class KeyPressInfoBuilder {
     return this;
   }
 
+  addCheck(check) {
+    this.checkCallbacks.push(check);
+    return this;
+  }
+
   build() {
-    return new KeyPressInfo(this.callback, this.requireShift, this.requireCtrl);
+    return new KeyPressInfo(this.callback, this.requireShift, this.requireCtrl, this.checkCallbacks);
   }
 }
 
@@ -116,7 +169,7 @@ function replacePanelFiles(panelIndex, directories, files) {
     <div class="file-info" id="${id}" ondblclick="onObjectDoubleClicked(event, ${panelIndex}, '${id}')"
         onclick="onObjectClicked(event, ${panelIndex}, '${id}')">
       <div class="column-type-1">
-        ${directories[i].name}
+        [${directories[i].name}]
       </div>
       <div class="column-type-2">
         &lt;DIR&gt;
@@ -159,6 +212,8 @@ function showFileContent(fileContent) {
   fileContentModal.style = "display: flex; flex-direction: column; align-items: center; justify-content: center";
 
   fileContentModalOpen = true;
+  fileContentModalText.focus();
+  fileContentModalText.scrollTop = 0;
 }
 
 function closeFileContentModal() {
@@ -167,6 +222,46 @@ function closeFileContentModal() {
   fileContentModalOpen = false;
   fileContentModalPanelIndex = null;
   fileContentModalFileName = null;
+}
+
+function showConfirmModal(text, callback) {
+  confirmModalText.innerHTML = text;
+  confirmModal.style = "display: flex; flex-direction: column; align-items: center; justify-content: center";
+
+  confirmModalCallback = callback;
+  confirmModalOpen = true;
+}
+
+function closeConfirmModal(confirmResult) {
+  confirmModalCallback(confirmResult);
+
+  confirmModal.style = "";
+
+  confirmModalOpen = false;
+  confirmModalPanelIndex = null;
+  confirmModalFileName = null;
+  confirmModalCallback = null;
+}
+
+function showInputModal(text, initialValue, callback) {
+  inputModalText.innerHTML = text;
+  inputModal.style = "display: flex; flex-direction: column; align-items: center; justify-content: center";
+  inputModalInput.value = initialValue;
+  inputModalInput.focus();
+
+  inputModalCallback = callback;
+  inputModalOpen = true;
+}
+
+function closeInputModal(confirmResult) {
+  inputModalCallback(confirmResult);
+
+  inputModal.style = "";
+
+  inputModalOpen = false;
+  inputModalPanelIndex = null;
+  inputModalFileName = null;
+  inputModalCallback = null;
 }
 
 function classAddToElement(element, cssClass) {
@@ -374,33 +469,56 @@ function initApp() {
     console.log(err);
   })
 
+  initKeyPressArrays();
   initKeyPressDownCallbacks();
   initKeyPressUpCallbacks();
 }
 
+function initKeyPressArrays() {
+  keyPressDownCallbacks[BUTTON_CTRL] = [];
+  keyPressDownCallbacks[BUTTON_SHIFT] = [];
+  keyPressDownCallbacks[BUTTON_SAVE_FILE] = [];
+  keyPressDownCallbacks[BUTTON_ARROW_DOWN] = [];
+  keyPressDownCallbacks[BUTTON_ARROW_UP] = [];
+  keyPressDownCallbacks[BUTTON_TAB] = [];
+  keyPressDownCallbacks[BUTTON_ENTER] = [];
+
+  keyPressUpCallbacks[BUTTON_CTRL] = [];
+  keyPressUpCallbacks[BUTTON_SHIFT] = [];
+  keyPressUpCallbacks[BUTTON_EXIT_EDIT_FILE] = [];
+  keyPressUpCallbacks[BUTTON_EDIT_FILE] = [];
+  keyPressUpCallbacks[BUTTON_COPY_FILES] = [];
+  keyPressUpCallbacks[BUTTON_RENAME_FILE_FOLDER] = [];
+  keyPressUpCallbacks[BUTTON_CREATE_FOLDER] = [];
+  keyPressUpCallbacks[BUTTON_DELETE_FILE_FOLDER] = [];
+}
+
 function initKeyPressDownCallbacks() {
-  keyPressDownCallbacks[BUTTON_CTRL] = new KeyPressInfoBuilder(keyPressDownCallbackControlPressed).build();
-  keyPressDownCallbacks[BUTTON_SHIFT] = new KeyPressInfoBuilder(keyPressDownCallbackShiftPressed).build();
+  keyPressDownCallbacks[BUTTON_CTRL].push(new KeyPressInfoBuilder(keyPressDownCallbackControlPressed).build());
+  keyPressDownCallbacks[BUTTON_SHIFT].push(new KeyPressInfoBuilder(keyPressDownCallbackShiftPressed).build());
 
-  keyPressDownCallbacks[BUTTON_SAVE_FILE] = new KeyPressInfoBuilder(keyPressDownCallbackSaveFile).reqCtrl().build();
+  keyPressDownCallbacks[BUTTON_SAVE_FILE].push(new KeyPressInfoBuilder(keyPressDownCallbackSaveFile).reqCtrl().addCheck(fileContentModalIsOpen).build());
 
-  keyPressDownCallbacks[BUTTON_ARROW_DOWN] = new KeyPressInfoBuilder(keyPressDownCallbackArrowDown).build();
-  keyPressDownCallbacks[BUTTON_ARROW_UP] = new KeyPressInfoBuilder(keyPressDownCallbackArrowUp).build();
+  keyPressDownCallbacks[BUTTON_ARROW_DOWN].push(new KeyPressInfoBuilder(keyPressDownCallbackArrowDown).addCheck(screenIsMain).build());
+  keyPressDownCallbacks[BUTTON_ARROW_UP].push(new KeyPressInfoBuilder(keyPressDownCallbackArrowUp).addCheck(screenIsMain).build());
 
-  keyPressDownCallbacks[BUTTON_TAB] = new KeyPressInfoBuilder(keyPressDownCallbackTab).build();
-  keyPressDownCallbacks[BUTTON_ENTER] = new KeyPressInfoBuilder(keyPressDownCallbackEnter).build();
+  keyPressDownCallbacks[BUTTON_TAB].push(new KeyPressInfoBuilder(keyPressDownCallbackTab).addCheck(screenIsMain).build());
+  keyPressDownCallbacks[BUTTON_ENTER].push(new KeyPressInfoBuilder(keyPressDownCallbackEnter).addCheck(screenIsMain).build());
 }
 
 function initKeyPressUpCallbacks() {
-  keyPressUpCallbacks[BUTTON_CTRL] = new KeyPressInfoBuilder(keyPressUpCallbackControlReleased).build();
-  keyPressUpCallbacks[BUTTON_SHIFT] = new KeyPressInfoBuilder(keyPressUpCallbackShiftReleased).build();
+  keyPressUpCallbacks[BUTTON_CTRL].push(new KeyPressInfoBuilder(keyPressUpCallbackControlReleased).build());
+  keyPressUpCallbacks[BUTTON_SHIFT].push(new KeyPressInfoBuilder(keyPressUpCallbackShiftReleased).build());
 
-  keyPressUpCallbacks[BUTTON_EXIT_EDIT_FILE] = new KeyPressInfoBuilder(keyPressUpCallbackExitEditFile).build();
-  keyPressUpCallbacks[BUTTON_EDIT_FILE] = new KeyPressInfoBuilder(keyPressUpCallbackEditFile).build();
-  keyPressUpCallbacks[BUTTON_COPY_FILES] = new KeyPressInfoBuilder(keyPressUpCallbackCopyFiles).build();
-  keyPressUpCallbacks[BUTTON_RENAME_FILE_FOLDER] = new KeyPressInfoBuilder(keyPressUpCallbackRenameFileFolder).build();
-  keyPressUpCallbacks[BUTTON_CREATE_FOLDER] = new KeyPressInfoBuilder(keyPressUpCallbackCreateFolder).build();
-  keyPressUpCallbacks[BUTTON_DELETE_FILE_FOLDER] = new KeyPressInfoBuilder(keyPressUpCallbackDeleteFileFolder).build();
+  keyPressUpCallbacks[BUTTON_EXIT_EDIT_FILE].push(new KeyPressInfoBuilder(keyPressUpCallbackExitModal).addCheck(fileContentModalIsOpen).build());
+  keyPressUpCallbacks[BUTTON_EXIT_EDIT_FILE].push(new KeyPressInfoBuilder(keyPressUpCallbackExitModal).addCheck(confirmModalIsOpen).build());
+  keyPressUpCallbacks[BUTTON_EXIT_EDIT_FILE].push(new KeyPressInfoBuilder(keyPressUpCallbackExitModal).addCheck(inputModalIsOpen).build());
+
+  keyPressUpCallbacks[BUTTON_EDIT_FILE].push(new KeyPressInfoBuilder(keyPressUpCallbackEditFile).addCheck(screenIsMain).build());
+  keyPressUpCallbacks[BUTTON_COPY_FILES].push(new KeyPressInfoBuilder(keyPressUpCallbackCopyFiles).addCheck(screenIsMain).build());
+  keyPressUpCallbacks[BUTTON_RENAME_FILE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackRenameFileFolder).addCheck(screenIsMain).build());
+  keyPressUpCallbacks[BUTTON_CREATE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackCreateFolder).addCheck(screenIsMain).build());
+  keyPressUpCallbacks[BUTTON_DELETE_FILE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackDeleteFileFolder).addCheck(screenIsMain).build());
 }
 
 window.onload = initApp();
@@ -408,6 +526,8 @@ window.onload = initApp();
 window.onclick = function (event) {
   if (event.target == fileContentModal) {
     closeFileContentModal();
+  } else if (event.target == confirmModal) {
+    closeConfirmModal(false);
   }
 }
 
@@ -429,7 +549,7 @@ function executeCallbackHandler(event, keyPressInfo) {
     }
   }
 
-  if (totalConditions != fulfilledConditions) {
+  if (totalConditions != fulfilledConditions || !keyPressInfo.allChecksPass()) {
     return;
   }
   event.preventDefault();
@@ -438,13 +558,17 @@ function executeCallbackHandler(event, keyPressInfo) {
 
 window.onkeydown = function (event) {
   if (event != undefined && event.key in keyPressDownCallbacks) {
-    executeCallbackHandler(event, keyPressDownCallbacks[event.key]);
+    for (let i = 0; i < keyPressDownCallbacks[event.key].length; ++i) {
+      executeCallbackHandler(event, keyPressDownCallbacks[event.key][i]);
+    }
   }
 }
 
 window.onkeyup = function (event) {
   if (event != undefined && event.key in keyPressUpCallbacks) {
-    executeCallbackHandler(event, keyPressUpCallbacks[event.key]);
+    for (let i = 0; i < keyPressUpCallbacks[event.key].length; ++i) {
+      executeCallbackHandler(event, keyPressUpCallbacks[event.key][i]);
+    }
   }
 }
 
@@ -468,30 +592,54 @@ function keyPressUpCallbackShiftReleased() {
   buttonShiftPressed = false;
 }
 
-function keyPressUpCallbackExitEditFile() {
-  if (fileContentModalOpen) {
+function keyPressUpCallbackExitModal() {
+  if (confirmModalIsOpen()) {
+    closeConfirmModal(false);
+    return;
+  }
+  if (inputModalIsOpen()) {
+    closeInputModal(false);
+    return;
+  }
+  if (fileContentModalIsOpen()) {
     closeFileContentModal();
+    return;
   }
 }
 
 function keyPressUpCallbackEditFile() {
-
+  console.log("EDIT");
 }
 
 function keyPressUpCallbackRenameFileFolder() {
-
+  let id = activePanelElement.id;
+  if (panelsObj[activePanelIndex][id].name == '..') {
+    return;
+  }
+  let message = `<div>Enter the new name of the file:</div>`;
+  showInputModal(message, panelsObj[activePanelIndex][id].name, (result) => {
+    console.log(result);
+  });
 }
 
 function keyPressUpCallbackCreateFolder() {
-
+  console.log("CREATE");
 }
 
 function keyPressUpCallbackCopyFiles() {
-
+  console.log("COPY");
 }
 
 function keyPressUpCallbackDeleteFileFolder() {
-
+  let id = activePanelElement.id;
+  if (panelsObj[activePanelIndex][id].name == '..') {
+    return;
+  }
+  let fullPath = getCurrentDirectoryPathForPanel(activePanelIndex) + '\\' + panelsObj[activePanelIndex][id].name;
+  let message = `<div>Do you really want to delete the following file?</div><div>${fullPath}</div>`;
+  showConfirmModal(message, (result) => {
+    console.log(result);
+  });
 }
 
 function keyPressDownCallbackArrowUp() {
@@ -555,6 +703,12 @@ function keyPressDownCallbackSaveFile() {
   }, (err) => {
     console.log(err);
   });
+}
+
+function getCurrentDirectoryPathForPanel(panelIndex) {
+  const objProperties = ['panel_left', 'panel_right'];
+  const decodedToken = getDecodedPathsToken();
+  return decodedToken[objProperties[panelIndex]];
 }
 
 function updatePanelPaths() {

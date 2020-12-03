@@ -15,7 +15,6 @@
 
   <!-- https://www.w3schools.com/howto/howto_css_modals.asp -->
   <div id="file-content-modal" class="modal">
-
     <div class="modal-content">
       <div class="modal-header">
         <span class="close" onclick="closeFileContentModal()">&times;</span>
@@ -24,7 +23,53 @@
 
       </textarea>
     </div>
+  </div>
 
+  <!-- https://www.w3schools.com/howto/howto_css_modals.asp -->
+  <div id="confirm-modal" class="modal">
+    <div class="modal-container">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="close" onclick="closeConfirmModal(false)">&times;</span>
+        </div>
+        <div class="modal-body">
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="button" onclick="closeConfirmModal(true)">
+          Confirm
+        </div>
+        <div class="button" onclick="closeConfirmModal(false)">
+          Cancel
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- https://www.w3schools.com/howto/howto_css_modals.asp -->
+  <div id="input-modal" class="modal">
+    <div class="modal-container">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="close" onclick="closeInputModal(false)">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div class="prompt">
+
+          </div>
+          <input type="text" class="modal-input">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="button" onclick="closeInputModal(true)">
+          Confirm
+        </div>
+        <div class="button" onclick="closeInputModal(false)">
+          Cancel
+        </div>
+      </div>
+    </div>
   </div>
 
   <header>
