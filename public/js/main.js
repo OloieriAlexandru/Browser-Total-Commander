@@ -46,7 +46,7 @@ function inputModalIsOpen() {
 }
 
 function screenIsMain() {
-  const checks = [fileContentModalIsOpen];
+  const checks = [fileContentModalIsOpen, confirmModalIsOpen, inputModalIsOpen];
   for (let i = 0; i < checks.length; ++i) {
     if (checks[i]()) {
       return false;
@@ -68,14 +68,16 @@ const BUTTON_CTRL = 'Control';
 const BUTTON_SHIFT = 'Shift';
 const BUTTON_ENTER = 'Enter';
 
-const BUTTON_SAVE_FILE = 's';
+const BUTTON_SAVE_FILE = 'KeyS';
 
 const BUTTON_EXIT_EDIT_FILE = 'Escape';
-const BUTTON_EDIT_FILE = '4';
-const BUTTON_COPY_FILES = '5';
-const BUTTON_RENAME_FILE_FOLDER = '6';
-const BUTTON_CREATE_FOLDER = '7';
-const BUTTON_DELETE_FILE_FOLDER = '8';
+const BUTTON_EDIT_FILE = 'Digit4';
+const BUTTON_CREATE_FILE = 'Digit4';
+const BUTTON_COPY_FILES = 'Digit5';
+const BUTTON_RENAME_FILE_FOLDER = 'Digit6';
+const BUTTON_MOVE_FILE_FOLDER = 'Digit6';
+const BUTTON_CREATE_FOLDER = 'Digit7';
+const BUTTON_DELETE_FILE_FOLDER = 'Digit8';
 
 var keyPressUpCallbacks = {};
 var keyPressDownCallbacks = {};
@@ -504,6 +506,8 @@ function initKeyPressDownCallbacks() {
 
   keyPressDownCallbacks[BUTTON_TAB].push(new KeyPressInfoBuilder(keyPressDownCallbackTab).addCheck(screenIsMain).build());
   keyPressDownCallbacks[BUTTON_ENTER].push(new KeyPressInfoBuilder(keyPressDownCallbackEnter).addCheck(screenIsMain).build());
+  keyPressDownCallbacks[BUTTON_ENTER].push(new KeyPressInfoBuilder(keyPressDownCallbackEnterModal).addCheck(confirmModalIsOpen).build());
+  keyPressDownCallbacks[BUTTON_ENTER].push(new KeyPressInfoBuilder(keyPressDownCallbackEnterModal).addCheck(inputModalIsOpen).build());
 }
 
 function initKeyPressUpCallbacks() {
@@ -515,8 +519,13 @@ function initKeyPressUpCallbacks() {
   keyPressUpCallbacks[BUTTON_EXIT_EDIT_FILE].push(new KeyPressInfoBuilder(keyPressUpCallbackExitModal).addCheck(inputModalIsOpen).build());
 
   keyPressUpCallbacks[BUTTON_EDIT_FILE].push(new KeyPressInfoBuilder(keyPressUpCallbackEditFile).addCheck(screenIsMain).build());
+  keyPressUpCallbacks[BUTTON_CREATE_FILE].push(new KeyPressInfoBuilder(keyPressUpCallbackCreateFile).addCheck(screenIsMain).reqShift().build());
+
   keyPressUpCallbacks[BUTTON_COPY_FILES].push(new KeyPressInfoBuilder(keyPressUpCallbackCopyFiles).addCheck(screenIsMain).build());
+
   keyPressUpCallbacks[BUTTON_RENAME_FILE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackRenameFileFolder).addCheck(screenIsMain).build());
+  keyPressUpCallbacks[BUTTON_MOVE_FILE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackMoveFileFolder).addCheck(screenIsMain).reqShift().build())
+
   keyPressUpCallbacks[BUTTON_CREATE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackCreateFolder).addCheck(screenIsMain).build());
   keyPressUpCallbacks[BUTTON_DELETE_FILE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackDeleteFileFolder).addCheck(screenIsMain).build());
 }
@@ -528,6 +537,8 @@ window.onclick = function (event) {
     closeFileContentModal();
   } else if (event.target == confirmModal) {
     closeConfirmModal(false);
+  } else if (event.target == inputModal) {
+    closeInputModal(false);
   }
 }
 
@@ -557,17 +568,27 @@ function executeCallbackHandler(event, keyPressInfo) {
 }
 
 window.onkeydown = function (event) {
-  if (event != undefined && event.key in keyPressDownCallbacks) {
-    for (let i = 0; i < keyPressDownCallbacks[event.key].length; ++i) {
-      executeCallbackHandler(event, keyPressDownCallbacks[event.key][i]);
+  if (event == null || event == undefined) {
+    return;
+  }
+  for (var callbackInfo in keyPressDownCallbacks) {
+    if (event.code.startsWith(callbackInfo)) {
+      for (let i = 0; i < keyPressDownCallbacks[callbackInfo].length; ++i) {
+        executeCallbackHandler(event, keyPressDownCallbacks[callbackInfo][i]);
+      }
     }
   }
 }
 
 window.onkeyup = function (event) {
-  if (event != undefined && event.key in keyPressUpCallbacks) {
-    for (let i = 0; i < keyPressUpCallbacks[event.key].length; ++i) {
-      executeCallbackHandler(event, keyPressUpCallbacks[event.key][i]);
+  if (event == null || event == undefined) {
+    return;
+  }
+  for (var callbackInfo in keyPressUpCallbacks) {
+    if (event.code.startsWith(callbackInfo)) {
+      for (let i = 0; i < keyPressUpCallbacks[callbackInfo].length; ++i) {
+        executeCallbackHandler(event, keyPressUpCallbacks[callbackInfo][i]);
+      }
     }
   }
 }
@@ -607,11 +628,25 @@ function keyPressUpCallbackExitModal() {
   }
 }
 
+function keyPressUpCallbackCreateFile() {
+  console.log("CREATE");
+}
+
 function keyPressUpCallbackEditFile() {
+  if (buttonShiftPressed) {
+    return;
+  }
   console.log("EDIT");
 }
 
+function keyPressUpCallbackMoveFileFolder() {
+  console.log("MOVE");
+}
+
 function keyPressUpCallbackRenameFileFolder() {
+  if (buttonShiftPressed) {
+    return;
+  }
   let id = activePanelElement.id;
   if (panelsObj[activePanelIndex][id].name == '..') {
     return;
@@ -623,7 +658,7 @@ function keyPressUpCallbackRenameFileFolder() {
 }
 
 function keyPressUpCallbackCreateFolder() {
-  console.log("CREATE");
+  console.log("CREATE FOLDER");
 }
 
 function keyPressUpCallbackCopyFiles() {
@@ -675,6 +710,17 @@ function keyPressDownCallbackArrowDown() {
 function keyPressDownCallbackTab(event) {
   changeActivePanelMain(null);
   event.preventDefault();
+}
+
+function keyPressDownCallbackEnterModal() {
+  if (confirmModalIsOpen()) {
+    closeConfirmModal(true);
+    return;
+  }
+  if (inputModalIsOpen()) {
+    closeInputModal(true);
+    return;
+  }
 }
 
 function keyPressDownCallbackEnter() {
@@ -767,6 +813,9 @@ function onObjectClicked(event, panelIndex, id) {
   }
   let el = document.getElementById(id);
   if (buttonCtrlPressed) {
+    if (panelIndex != activePanelIndex) {
+      return;
+    }
     handleSelectElement(el);
   } else {
     if (panelIndex != activePanelIndex) {
@@ -778,5 +827,27 @@ function onObjectClicked(event, panelIndex, id) {
       activeElementSet(activePanelElement);
     }
     activePanelFileIndexes[activePanelIndex] = findFileInfoElementIndex(el);
+  }
+}
+
+function onButtonAction(type) {
+  if (type == 'edit-create') {
+    if (buttonShiftPressed) {
+      keyPressUpCallbackCreateFile();
+    } else {
+      keyPressUpCallbackEditFile();
+    }
+  } else if (type == 'copy') {
+    keyPressUpCallbackCopyFiles();
+  } else if (type == 'rename-move') {
+    if (buttonShiftPressed) {
+      keyPressUpCallbackMoveFileFolder();
+    } else {
+      keyPressUpCallbackRenameFileFolder();
+    }
+  } else if (type == 'create-folder') {
+    keyPressUpCallbackCreateFolder();
+  } else if (type == 'delete') {
+    keyPressUpCallbackDeleteFileFolder();
   }
 }
