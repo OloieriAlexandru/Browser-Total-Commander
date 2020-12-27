@@ -169,7 +169,7 @@ def create_dir(panel_index):
     return create_error_message("A directory with name {} already exists!".format(dir_name))
 
   if not tot_comm.create_directory(panel_index, dir_name):
-    return create_error_message('Creation of directory {} failed!'.format(dir_name))
+    return create_error_message('Creation of directory {} has failed!'.format(dir_name))
 
   return create_success_response('true', tot_comm, reload_panels=[panel_index])
 
@@ -177,6 +177,18 @@ def create_dir(panel_index):
 @app.route("/api/files/<int:panel_index>", methods=['POST'])
 def create_file(panel_index):
   tot_comm = validate_request(panel_index)
+
+  if not body_validator.validate_create_file_req_body(request.json):
+    return create_error_message("The request body is missing the name of the file!")
+
+  file_name = request.json['file_name']
+  if tot_comm.check_file_existence(panel_index, file_name):
+    return create_error_message('A file with name {} already exists!'.format(file_name))
+
+  if not tot_comm.create_file(panel_index, file_name):
+    return create_error_message('Creation of file {} has failed!'.format(file_name))
+
+  return create_success_response('true', tot_comm, reload_panels=[panel_index])
 
 
 @app.route("/api/files/<int:panel_index>/<string:file_name>", methods=['PUT'])

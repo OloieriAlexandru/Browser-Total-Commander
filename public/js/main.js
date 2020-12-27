@@ -376,11 +376,13 @@ function checkPanelReload(jsonObj) {
   for (let i = 0; i < panelsCount; ++i) {
     let currentPanelPropName = baseName + i;
     if (jsonObj.hasOwnProperty(currentPanelPropName)) {
-      let files = jsonObj[currentPanelPropName][0];
-      let dirs = jsonObj[currentPanelPropName][1];
-      replacePanelFiles(0, dirs, files);
+      let dirs = jsonObj[currentPanelPropName][0];
+      let files = jsonObj[currentPanelPropName][1];
+      replacePanelFiles(i, dirs, files);
       if (i == activePanelIndex) {
-        changeActivePanelMain(null);
+        activePanelElement = null;
+        activePanelFileIndexes[activePanelIndex] = 0;
+        changeActivePanel(activePanelIndex, null);
       }
     }
   }
@@ -650,14 +652,28 @@ function keyPressUpCallbackExitModal() {
 }
 
 function keyPressUpCallbackCreateFile() {
-  console.log("CREATE");
+  showInputModal('Create the file:', '', (confirmResult, fileName) => {
+    if (confirmResult && fileName.length > 0) {
+      let url = encodeURIComponent("/api/files/" + inputModalPanelIndex);
+      httpPOST(url, {
+        'file_name': fileName
+      }, (res) => {
+        // 
+      }, (err) => {
+        console.log(err);
+      });
+    }
+  });
 }
 
 function keyPressUpCallbackEditFile() {
   if (buttonShiftPressed) {
     return;
   }
-  console.log("EDIT");
+  let id = activePanelElement.id;
+  if (panelsObj[activePanelIndex][id].type == TYPE_FILE) {
+    editFile(activePanelIndex, id);
+  }
 }
 
 function keyPressUpCallbackMoveFileFolder() {
@@ -775,7 +791,7 @@ function keyPressDownCallbackSaveFile() {
 
   let url = encodeURIComponent("/api/files/" + fileContentModalPanelIndex + "/" + fileContentModalFileName);
   httpPUT(url, {
-    'wrong-content': fileContentModalText.value
+    'content': fileContentModalText.value
   }, (res) => {
     console.log(res);
   }, (err) => {

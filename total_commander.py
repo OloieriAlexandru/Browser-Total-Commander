@@ -75,6 +75,14 @@ class TotalCommander:
             return False
         return True
 
+    def create_file(self, active_panel, file_name):
+        file_path = os.path.join(self.paths[active_panel], file_name)
+        try:
+            open(file_path, 'a+').close()
+        except:
+            return False
+        return True
+
     def get_all(self, active_panel):
         if not self.valid_active_panel(active_panel):
             return False
