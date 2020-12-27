@@ -200,11 +200,41 @@ def update_file(panel_index, file_name):
 
   # the file doesn't exist
   if not tot_comm.check_file_existence(panel_index, file_name):
-    return create_error_message('Invalid file name {} in panel {}'.format(file_name, panel_index))
+    return create_error_message('Invalid file name {} in panel {}!'.format(file_name, panel_index))
 
   tot_comm.update_file_content(panel_index, file_name, request.json['content'])
 
-  return create_success_response('true', tot_comm)
+  return create_success_response('true', tot_comm, reload_panels=[panel_index])
+
+
+@app.route("/api/rename_request/<int:panel_index>", methods=['POST'])
+def rename_file_directory(panel_index):
+  tot_comm = validate_request(panel_index)
+
+  if not body_validator.validate_rename_file_directory_req_body(request.json):
+    return create_error_message("Invalid request body! old_name or new_name missing!")
+
+  old_name = request.json['old_name']
+  new_name = request.json['new_name']
+
+  if tot_comm.check_file_existence(panel_index, old_name):
+    if tot_comm.check_file_existence(panel_index, new_name):
+      return create_error_message("Invalid new file name! \"{}\" already exists!".format(new_name))
+
+    if not tot_comm.rename_file_directory(panel_index, old_name, new_name):
+      return create_error_message("Failed to rename {} into {}".format(old_name, new_name))
+
+  elif tot_comm.check_directory_existence(panel_index, old_name):
+    if tot_comm.check_directory_existence(panel_index, new_name):
+      return create_error_message("Invalid new directory name! \"{}\" already exists!".format(new_name))
+
+    if not tot_comm.rename_file_directory(panel_index, old_name, new_name):
+      return create_error_message("Failed to rename {} into {}".format(old_name, new_name))
+
+  else:
+    return create_error_message("Invalid old name {} in panel {}!".format(old_name, panel_index))
+
+  return create_success_response('true', tot_comm, reload_panels=[panel_index])
 
 
 if __name__ == "__main__":

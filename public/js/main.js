@@ -546,8 +546,8 @@ function initKeyPressUpCallbacks() {
 
   keyPressUpCallbacks[BUTTON_COPY_FILES].push(new KeyPressInfoBuilder(keyPressUpCallbackCopyFiles).addCheck(screenIsMain).build());
 
-  keyPressUpCallbacks[BUTTON_RENAME_FILE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackRenameFileFolder).addCheck(screenIsMain).build());
-  keyPressUpCallbacks[BUTTON_MOVE_FILE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackMoveFileFolder).addCheck(screenIsMain).reqShift().build())
+  keyPressUpCallbacks[BUTTON_RENAME_FILE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackRenameFileFolder).addCheck(screenIsMain).reqShift().build());
+  keyPressUpCallbacks[BUTTON_MOVE_FILE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackMoveFileFolder).addCheck(screenIsMain).build())
 
   keyPressUpCallbacks[BUTTON_CREATE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackCreateFolder).addCheck(screenIsMain).build());
   keyPressUpCallbacks[BUTTON_DELETE_FILE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackDeleteFileFolder).addCheck(screenIsMain).build());
@@ -653,16 +653,20 @@ function keyPressUpCallbackExitModal() {
 
 function keyPressUpCallbackCreateFile() {
   showInputModal('Create the file:', '', (confirmResult, fileName) => {
-    if (confirmResult && fileName.length > 0) {
-      let url = encodeURIComponent("/api/files/" + inputModalPanelIndex);
-      httpPOST(url, {
-        'file_name': fileName
-      }, (res) => {
-        // 
-      }, (err) => {
-        console.log(err);
-      });
+    if (!confirmResult) {
+      return;
     }
+    if (fileName.length == 0) {
+      return;
+    }
+    let url = encodeURIComponent("/api/files/" + inputModalPanelIndex);
+    httpPOST(url, {
+      'file_name': fileName
+    }, (res) => {
+      // 
+    }, (err) => {
+      console.log(err);
+    });
   });
 }
 
@@ -677,35 +681,57 @@ function keyPressUpCallbackEditFile() {
 }
 
 function keyPressUpCallbackMoveFileFolder() {
+  if (buttonShiftPressed) {
+    return;
+  }
   console.log("MOVE");
 }
 
 function keyPressUpCallbackRenameFileFolder() {
-  if (buttonShiftPressed) {
+  if (!buttonShiftPressed) {
     return;
   }
   let id = activePanelElement.id;
-  if (panelsObj[activePanelIndex][id].name == '..') {
+  let oldName = panelsObj[activePanelIndex][id].name;
+  if (oldName === '..') {
     return;
   }
   let message = `<div>Enter the new name of the file:</div>`;
-  showInputModal(message, panelsObj[activePanelIndex][id].name, (result) => {
-    console.log(result);
+  showInputModal(message, panelsObj[activePanelIndex][id].name, (confirmResult, newFileName) => {
+    if (!confirmResult) {
+      return;
+    }
+    if (newFileName.length == 0 || oldName == newFileName) {
+      return;
+    }
+    let url = encodeURIComponent("/api/rename_request/" + inputModalPanelIndex);
+    httpPOST(url, {
+      'old_name': oldName,
+      'new_name': newFileName
+    }, (result) => {
+      console.log(result);
+    }, (err) => {
+      console.log(err);
+    });
   });
 }
 
 function keyPressUpCallbackCreateFolder() {
   showInputModal('Create the folder:', '', (confirmResult, folderName) => {
-    if (confirmResult && folderName.length > 0) {
-      let url = encodeURIComponent("/api/dirs/" + inputModalPanelIndex);
-      httpPOST(url, {
-        'directory_name': folderName
-      }, (res) => {
-        // 
-      }, (err) => {
-        console.log(err);
-      });
+    if (!confirmResult) {
+      return;
     }
+    if (folderName.length == 0) {
+      return;
+    }
+    let url = encodeURIComponent("/api/dirs/" + inputModalPanelIndex);
+    httpPOST(url, {
+      'directory_name': folderName
+    }, (res) => {
+      // 
+    }, (err) => {
+      console.log(err);
+    });
   });
 }
 
@@ -888,7 +914,7 @@ function onButtonAction(type) {
   } else if (type == 'copy') {
     keyPressUpCallbackCopyFiles();
   } else if (type == 'rename-move') {
-    if (buttonShiftPressed) {
+    if (!buttonShiftPressed) {
       keyPressUpCallbackMoveFileFolder();
     } else {
       keyPressUpCallbackRenameFileFolder();

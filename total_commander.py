@@ -83,6 +83,16 @@ class TotalCommander:
             return False
         return True
 
+    def rename_file_directory(self, active_panel, old_name, new_name):
+        old_path = os.path.join(self.paths[active_panel], old_name)
+        new_path = os.path.join(self.paths[active_panel], new_name)
+
+        try:
+            os.rename(old_path, new_path)
+        except:
+            return False
+        return True
+
     def get_all(self, active_panel):
         if not self.valid_active_panel(active_panel):
             return False

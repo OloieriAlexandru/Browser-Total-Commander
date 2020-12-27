@@ -26,6 +26,14 @@ CREATE_FILE_SCHEMA = {
     }
 }
 
+RENAME_FILE_DIRECTORY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "old_name": {"type": "string"},
+        "new_name": {"type": "string"}
+    }
+}
+
 
 class Validator:
     def __init__(self):
@@ -50,3 +58,6 @@ class Validator:
 
     def validate_create_file_req_body(self, req_body):
         return self.validate_json(CREATE_FILE_SCHEMA, req_body)
+
+    def validate_rename_file_directory_req_body(self, req_body):
+        return self.validate_json(RENAME_FILE_DIRECTORY_SCHEMA, req_body)
