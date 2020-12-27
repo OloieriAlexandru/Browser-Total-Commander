@@ -20,7 +20,10 @@ def encode_panels_paths(panel_left, panel_right):
 
 
 def decode_panels_paths(jwt_token):
-    obj = jwt.decode(str.encode(jwt_token), JWT_SECRET, algorithms=['HS256'])
+    try:
+        obj = jwt.decode(str.encode(jwt_token), JWT_SECRET, algorithms=['HS256'])
+    except:
+        return -1
     if obj is not None:
         return (obj['panel_left'], obj['panel_right'])
     return None

@@ -12,6 +12,20 @@ UPDATE_FILE_SCHEMA = {
     }
 }
 
+CREATE_DIRECTORY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "directory_name": {"type": "string"}
+    }
+}
+
+CREATE_FILE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "file_name": {"type": "string"}
+    }
+}
+
 
 class Validator:
     def __init__(self):
@@ -30,3 +44,9 @@ class Validator:
 
     def validate_update_file_req_body(self, req_body):
         return self.validate_json(UPDATE_FILE_SCHEMA, req_body)
+
+    def validate_create_directory_req_body(self, req_body):
+        return self.validate_json(CREATE_DIRECTORY_SCHEMA, req_body)
+
+    def validate_create_file_req_body(self, req_body):
+        return self.validate_json(CREATE_FILE_SCHEMA, req_body)

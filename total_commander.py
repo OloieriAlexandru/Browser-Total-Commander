@@ -34,7 +34,8 @@ class TotalCommander:
         return True
 
     def change_dir(self, active_panel, ddir):
-        new_path = os.path.normpath(os.path.join(self.paths[active_panel], ddir))
+        new_path = os.path.normpath(
+            os.path.join(self.paths[active_panel], ddir))
         if not os.path.isdir(new_path):
             return False
         self.paths[active_panel] = new_path
@@ -49,6 +50,12 @@ class TotalCommander:
             return False
         return True
 
+    def check_directory_existence(self, active_panel, directory_name):
+        dir_path = os.path.join(self.paths[active_panel], directory_name)
+        if not os.path.isdir(dir_path):
+            return False
+        return True
+
     def get_file_content(self, active_panel, file_name):
         file_path = os.path.join(self.paths[active_panel], file_name)
         with open(file_path, "r") as file_in:
@@ -59,6 +66,14 @@ class TotalCommander:
         file_path = os.path.join(self.paths[active_panel], file_name)
         with open(file_path, "w") as file_out:
             file_out.write(file_content)
+
+    def create_directory(self, active_panel, directory_name):
+        dir_path = os.path.join(self.paths[active_panel], directory_name)
+        try:
+            os.mkdir(dir_path)
+        except:
+            return False
+        return True
 
     def get_all(self, active_panel):
         if not self.valid_active_panel(active_panel):

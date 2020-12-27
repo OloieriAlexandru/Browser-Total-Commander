@@ -235,8 +235,9 @@ function showConfirmModal(text, callback) {
 }
 
 function closeConfirmModal(confirmResult) {
-  confirmModalCallback(confirmResult);
-
+  if (confirmModalCallback) {
+    confirmModalCallback(confirmResult);
+  }
   confirmModal.style = "";
 
   confirmModalOpen = false;
@@ -252,12 +253,14 @@ function showInputModal(text, initialValue, callback) {
   inputModalInput.focus();
 
   inputModalCallback = callback;
+  inputModalPanelIndex = activePanelIndex;
   inputModalOpen = true;
 }
 
 function closeInputModal(confirmResult) {
-  inputModalCallback(confirmResult);
-
+  if (inputModalCallback) {
+    inputModalCallback(confirmResult, inputModalInput.value);
+  }
   inputModal.style = "";
 
   inputModalOpen = false;
@@ -367,6 +370,22 @@ function findFileInfoElementIndex(element) {
   return 0;
 }
 
+function checkPanelReload(jsonObj) {
+  let panelsCount = 2;
+  let baseName = 'reloaded_panel_';
+  for (let i = 0; i < panelsCount; ++i) {
+    let currentPanelPropName = baseName + i;
+    if (jsonObj.hasOwnProperty(currentPanelPropName)) {
+      let files = jsonObj[currentPanelPropName][0];
+      let dirs = jsonObj[currentPanelPropName][1];
+      replacePanelFiles(0, dirs, files);
+      if (i == activePanelIndex) {
+        changeActivePanelMain(null);
+      }
+    }
+  }
+}
+
 /*
 Panel paths token
 */
@@ -423,20 +442,22 @@ function httpRequest(url, httpVerb, body, res, err) {
     if (this.readyState == 4) {
       if (this.status >= 200 && this.status < 300) {
         if (res) {
-          jsonObj = JSON.parse(xmlhttp.responseText);
+          let jsonObj = JSON.parse(xmlhttp.responseText);
           if (jsonObj.hasOwnProperty('token')) {
             savePathToken(jsonObj.token);
           }
+          checkPanelReload(jsonObj);
           res({
             status: this.status,
             res: jsonObj
           });
         }
       } else if (this.status >= 400 && this.status < 600) {
-        if (err) {
+        let jsonObj = JSON.parse(xmlhttp.responseText)
+        if (err && jsonObj.hasOwnProperty('error_message')) {
           err({
             status: this.status,
-            res: xmlhttp.responseText
+            res: jsonObj.error_message
           });
         }
       }
@@ -658,7 +679,18 @@ function keyPressUpCallbackRenameFileFolder() {
 }
 
 function keyPressUpCallbackCreateFolder() {
-  console.log("CREATE FOLDER");
+  showInputModal('Create the folder:', '', (confirmResult, folderName) => {
+    if (confirmResult && folderName.length > 0) {
+      let url = encodeURIComponent("/api/dirs/" + inputModalPanelIndex);
+      httpPOST(url, {
+        'directory_name': folderName
+      }, (res) => {
+        // 
+      }, (err) => {
+        console.log(err);
+      });
+    }
+  });
 }
 
 function keyPressUpCallbackCopyFiles() {
