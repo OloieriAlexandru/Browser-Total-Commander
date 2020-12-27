@@ -688,7 +688,41 @@ function keyPressUpCallbackMoveFileFolder() {
   if (buttonShiftPressed) {
     return;
   }
-  console.log("MOVE");
+  let message = null;
+  let movedItems = [];
+  if (activePanelSelectedFiles.length == 0) {
+    let id = activePanelElement.id;
+    if (panelsObj[activePanelIndex][id].name == '..') {
+      return;
+    }
+    let fullPath = getCurrentDirectoryPathForPanel(activePanelIndex) + '\\' + panelsObj[activePanelIndex][id].name;
+    message = `<div>Do you really want to move the following file?</div><div>${fullPath}</div>`;
+    movedItems.push({
+      'file_name': panelsObj[activePanelIndex][id].name
+    });
+  } else {
+    message = `<div>Do you really want to move the selected items?</div>`;
+    for (let i = 0; i < activePanelSelectedFiles.length; ++i) {
+      let fileName = panelsObj[activePanelIndex][activePanelSelectedFiles[i].id].name;
+      movedItems.push({
+        'file_name': fileName
+      });
+    }
+  }
+  if (!message || movedItems.length == 0) {
+    return;
+  }
+  let url = encodeURIComponent("/api/move_request/" + activePanelIndex);
+  showConfirmModal(message, (result) => {
+    if (result) {
+      httpPOST(url, movedItems,
+        (result) => {
+          console.log(result);
+        }, (err) => {
+          console.log(err);
+        });
+    }
+  });
 }
 
 function keyPressUpCallbackRenameFileFolder() {

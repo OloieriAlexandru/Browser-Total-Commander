@@ -45,6 +45,15 @@ class TotalCommander:
     def get_paths(self):
         return (self.paths[0], self.paths[1])
 
+    def panels_same_directory(self, panel_1, panel_2):
+        return self.paths[panel_1] == self.paths[panel_2]
+
+    def check_existence(self, active_panel, name):
+        item_path = os.path.join(self.paths[active_panel], name)
+        if not os.path.exists(item_path):
+            return False
+        return True
+
     def check_file_existence(self, active_panel, file_name):
         file_path = os.path.join(self.paths[active_panel], file_name)
         if not os.path.isfile(file_path):
@@ -113,7 +122,26 @@ class TotalCommander:
             shutil.rmtree(dir_path)
         except:
             return False
+        return True
 
+    def move(self, source_panel, target_panel, item_name):
+        source_path = os.path.join(self.paths[source_panel], item_name)
+        target_path = os.path.join(self.paths[target_panel], item_name)
+
+        try:
+            shutil.move(source_path, target_path)
+        except:
+            return False
+        return True
+
+    def copy(self, source_panel, target_panel, item_name):
+        source_path = os.path.join(self.paths[source_panel], item_name)
+        target_path = os.path.join(self.paths[target_panel], item_name)
+
+        try:
+            shutil.copy2(source_path, target_path)
+        except:
+            return False
         return True
 
     def get_all(self, active_panel):

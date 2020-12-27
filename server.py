@@ -220,14 +220,14 @@ def rename_file_directory(panel_index):
   new_name = request.json['new_name']
 
   if tot_comm.check_file_existence(panel_index, old_name):
-    if tot_comm.check_file_existence(panel_index, new_name):
+    if tot_comm.check_existence(panel_index, new_name):
       return create_error_message("Invalid new file name! \"{}\" already exists!".format(new_name))
 
     if not tot_comm.rename_file_directory(panel_index, old_name, new_name):
       return create_error_message("Failed to rename {} into {}".format(old_name, new_name))
 
   elif tot_comm.check_directory_existence(panel_index, old_name):
-    if tot_comm.check_directory_existence(panel_index, new_name):
+    if tot_comm.check_existence(panel_index, new_name):
       return create_error_message("Invalid new directory name! \"{}\" already exists!".format(new_name))
 
     if not tot_comm.rename_file_directory(panel_index, old_name, new_name):
@@ -244,7 +244,7 @@ def delete_files_directories(panel_index):
   tot_comm = validate_request(panel_index)
 
   if not body_validator.validate_delete_files_directories_req_body(request.json):
-    return create_error_message("Invalid request body! Expected an array of files to delete!")
+    return create_error_message("Invalid request body! Expecting an array of items to delete!")
 
   items = request.json
   failed = []
@@ -260,7 +260,45 @@ def delete_files_directories(panel_index):
     else:
       failed.append(item_name)
 
-  return create_success_response('true', tot_comm, reload_panels=[panel_index], failed_items = failed)
+  panels_to_reload = [panel_index]
+  if tot_comm.panels_same_directory(panel_index, 1 - panel_index):
+    panels_to_reload.append(1 - panel_index)
+
+  return create_success_response('true', tot_comm, reload_panels=panels_to_reload, failed_items=failed)
+
+
+@app.route("/api/move_request/<int:panel_index>", methods=['POST'])
+def move_files_directories(panel_index):
+  tot_comm = validate_request(panel_index)
+
+  if not body_validator.validate_move_files_directories_req_body(request.json):
+    return create_error_message("Invalid request body! Expecting an array of items to move!")
+
+  items = request.json
+  failed = []
+  other_index = 1 - panel_index
+
+  for item in items:
+    item_name = item['file_name']
+    if tot_comm.check_file_existence(panel_index, item_name):
+      if tot_comm.check_existence(other_index, item_name):
+        failed.append(item_name)
+      else:
+        tot_comm.move(panel_index, other_index, item_name)
+    elif tot_comm.check_directory_existence(panel_index, item_name):
+      if tot_comm.check_existence(other_index, item_name):
+        failed.append(item_name)
+      else:
+        tot_comm.move(panel_index, other_index, item_name)
+    else:
+      failed.append(item_name)
+
+  return create_success_response('true', tot_comm, reload_panels=[panel_index, other_index], failed_items=failed)
+
+
+@app.route("/api/copy_request/<int:panel_index>", methods=['POST'])
+def copy_files_directories(panel_index):
+  pass
 
 
 if __name__ == "__main__":

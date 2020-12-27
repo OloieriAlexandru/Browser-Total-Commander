@@ -34,7 +34,7 @@ RENAME_FILE_DIRECTORY_SCHEMA = {
     }
 }
 
-DELETE_FILES_DIRECTORIES_SCHEMA = {
+ARRAY_OF_ITEMS_SCHEMA = {
     "type": "array",
     "items": {
         "type": "object",
@@ -75,4 +75,10 @@ class Validator:
         return self.validate_json(RENAME_FILE_DIRECTORY_SCHEMA, req_body)
 
     def validate_delete_files_directories_req_body(self, req_body):
-        return self.validate_json(DELETE_FILES_DIRECTORIES_SCHEMA, req_body)
+        return self.validate_json(ARRAY_OF_ITEMS_SCHEMA, req_body)
+
+    def validate_move_files_directories_req_body(self, req_body):
+        return self.validate_json(ARRAY_OF_ITEMS_SCHEMA, req_body)
+
+    def validate_copy_files_directories_req_body(self, req_body):
+        return self.validate_json(ARRAY_OF_ITEMS_SCHEMA, req_body)
