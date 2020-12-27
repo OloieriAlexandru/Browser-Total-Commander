@@ -34,6 +34,16 @@ RENAME_FILE_DIRECTORY_SCHEMA = {
     }
 }
 
+DELETE_FILES_DIRECTORIES_SCHEMA = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "file_name": {"type": "string"}
+        }
+    }
+}
+
 
 class Validator:
     def __init__(self):
@@ -44,6 +54,8 @@ class Validator:
             jsonschema.validate(instance=obj, schema=schema)
         except:
             return False
+        if 'properties' not in schema:
+            return True
         for prop in schema['properties']:
             if prop not in obj:
                 print(prop)
@@ -61,3 +73,6 @@ class Validator:
 
     def validate_rename_file_directory_req_body(self, req_body):
         return self.validate_json(RENAME_FILE_DIRECTORY_SCHEMA, req_body)
+
+    def validate_delete_files_directories_req_body(self, req_body):
+        return self.validate_json(DELETE_FILES_DIRECTORIES_SCHEMA, req_body)

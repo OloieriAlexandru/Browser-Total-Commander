@@ -5,6 +5,7 @@
 import os
 import time
 import pathlib
+import shutil
 
 DEFAULT_PATH = 'D:\\'
 
@@ -91,6 +92,28 @@ class TotalCommander:
             os.rename(old_path, new_path)
         except:
             return False
+        return True
+
+    def delete_file(self, active_panel, file_name):
+        file_path = os.path.join(self.paths[active_panel], file_name)
+
+        try:
+            os.remove(file_path)
+        except:
+            return False
+
+        return True
+
+    def delete_directory(self, active_panel, directory_name):
+        if directory_name == '.' or directory_name == '..':
+            return False
+        dir_path = os.path.join(self.paths[active_panel], directory_name)
+
+        try:
+            shutil.rmtree(dir_path)
+        except:
+            return False
+
         return True
 
     def get_all(self, active_panel):

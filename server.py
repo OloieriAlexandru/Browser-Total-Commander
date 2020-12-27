@@ -29,7 +29,7 @@ def add_token(obj, token):
   return obj
 
 
-def create_success_response(success, tot_comm, reload_panels=None):
+def create_success_response(success, tot_comm, reload_panels=None, **kwargs):
   obj_res = {
       'success': success
   }
@@ -40,6 +40,8 @@ def create_success_response(success, tot_comm, reload_panels=None):
       if files is False:
         continue
       obj_res[prop_name] = files
+  for key in kwargs:
+    obj_res[key] = kwargs[key]
   return jsonify(add_token(obj_res, token_helper.encode_panels_total_commander(
       tot_comm
   )))
@@ -235,6 +237,30 @@ def rename_file_directory(panel_index):
     return create_error_message("Invalid old name {} in panel {}!".format(old_name, panel_index))
 
   return create_success_response('true', tot_comm, reload_panels=[panel_index])
+
+
+@app.route("/api/delete_request/<int:panel_index>", methods=['POST'])
+def delete_files_directories(panel_index):
+  tot_comm = validate_request(panel_index)
+
+  if not body_validator.validate_delete_files_directories_req_body(request.json):
+    return create_error_message("Invalid request body! Expected an array of files to delete!")
+
+  items = request.json
+  failed = []
+
+  for item in items:
+    item_name = item['file_name']
+    if tot_comm.check_file_existence(panel_index, item_name):
+      if not tot_comm.delete_file(panel_index, item_name):
+        failed.append(item_name)
+    elif tot_comm.check_directory_existence(panel_index, item_name):
+      if not tot_comm.delete_directory(panel_index, item_name):
+        failed.append(item_name)
+    else:
+      failed.append(item_name)
+
+  return create_success_response('true', tot_comm, reload_panels=[panel_index], failed_items = failed)
 
 
 if __name__ == "__main__":

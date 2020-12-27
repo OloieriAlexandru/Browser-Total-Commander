@@ -314,6 +314,9 @@ function getKthElementFromPanel(panelIndex, k) {
 }
 
 function handleSelectElement(el) {
+  if (panelsObj[activePanelIndex][el.id].name === '..') {
+    return;
+  }
   let index = activePanelSelectedFiles.indexOf(el);
   if (index == -1) {
     activePanelSelectedFiles.push(el);
@@ -380,6 +383,7 @@ function checkPanelReload(jsonObj) {
       let files = jsonObj[currentPanelPropName][1];
       replacePanelFiles(i, dirs, files);
       if (i == activePanelIndex) {
+        clearActivePanelSelections();
         activePanelElement = null;
         activePanelFileIndexes[activePanelIndex] = 0;
         changeActivePanel(activePanelIndex, null);
@@ -740,14 +744,40 @@ function keyPressUpCallbackCopyFiles() {
 }
 
 function keyPressUpCallbackDeleteFileFolder() {
-  let id = activePanelElement.id;
-  if (panelsObj[activePanelIndex][id].name == '..') {
+  let message = null;
+  let deletedItems = [];
+  if (activePanelSelectedFiles.length == 0) {
+    let id = activePanelElement.id;
+    if (panelsObj[activePanelIndex][id].name == '..') {
+      return;
+    }
+    let fullPath = getCurrentDirectoryPathForPanel(activePanelIndex) + '\\' + panelsObj[activePanelIndex][id].name;
+    message = `<div>Do you really want to delete the following file?</div><div>${fullPath}</div>`;
+    deletedItems.push({
+      'file_name': panelsObj[activePanelIndex][id].name
+    });
+  } else {
+    message = `<div>Do you really want to delete the selected items?</div>`;
+    for (let i = 0; i < activePanelSelectedFiles.length; ++i) {
+      let fileName = panelsObj[activePanelIndex][activePanelSelectedFiles[i].id].name;
+      deletedItems.push({
+        'file_name': fileName
+      });
+    }
+  }
+  if (!message || deletedItems.length == 0) {
     return;
   }
-  let fullPath = getCurrentDirectoryPathForPanel(activePanelIndex) + '\\' + panelsObj[activePanelIndex][id].name;
-  let message = `<div>Do you really want to delete the following file?</div><div>${fullPath}</div>`;
+  let url = encodeURIComponent("/api/delete_request/" + activePanelIndex);
   showConfirmModal(message, (result) => {
-    console.log(result);
+    if (result) {
+      httpPOST(url, deletedItems,
+        (result) => {
+          console.log(result);
+        }, (err) => {
+          console.log(err);
+        });
+    }
   });
 }
 
