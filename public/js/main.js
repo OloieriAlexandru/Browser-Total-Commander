@@ -657,10 +657,7 @@ function keyPressUpCallbackExitModal() {
 
 function keyPressUpCallbackCreateFile() {
   showInputModal('Create the file:', '', (confirmResult, fileName) => {
-    if (!confirmResult) {
-      return;
-    }
-    if (fileName.length == 0) {
+    if (!confirmResult || fileName.length == 0) {
       return;
     }
     let url = encodeURIComponent("/api/files/" + inputModalPanelIndex);
@@ -684,45 +681,52 @@ function keyPressUpCallbackEditFile() {
   }
 }
 
-function keyPressUpCallbackMoveFileFolder() {
-  if (buttonShiftPressed) {
-    return;
-  }
+function handleOperationOnSelection(firstMessage, secondMessage, urlPrefix, handleSuccess, handleError) {
   let message = null;
-  let movedItems = [];
+  let items = [];
   if (activePanelSelectedFiles.length == 0) {
     let id = activePanelElement.id;
     if (panelsObj[activePanelIndex][id].name == '..') {
       return;
     }
-    let fullPath = getCurrentDirectoryPathForPanel(activePanelIndex) + '\\' + panelsObj[activePanelIndex][id].name;
-    message = `<div>Do you really want to move the following file?</div><div>${fullPath}</div>`;
-    movedItems.push({
+    message = firstMessage;
+    items.push({
       'file_name': panelsObj[activePanelIndex][id].name
     });
   } else {
-    message = `<div>Do you really want to move the selected items?</div>`;
+    message = secondMessage;
     for (let i = 0; i < activePanelSelectedFiles.length; ++i) {
       let fileName = panelsObj[activePanelIndex][activePanelSelectedFiles[i].id].name;
-      movedItems.push({
+      items.push({
         'file_name': fileName
       });
     }
   }
-  if (!message || movedItems.length == 0) {
+  if (!message || items.length == 0) {
     return;
   }
-  let url = encodeURIComponent("/api/move_request/" + activePanelIndex);
-  showConfirmModal(message, (result) => {
-    if (result) {
-      httpPOST(url, movedItems,
-        (result) => {
-          console.log(result);
-        }, (err) => {
-          console.log(err);
-        });
+  let url = encodeURIComponent(urlPrefix + activePanelIndex);
+  showConfirmModal(message, (confirmResult) => {
+    if (confirmResult) {
+      httpPOST(url, items, handleSuccess, handleError);
     }
   });
+}
+
+function keyPressUpCallbackMoveFileFolder() {
+  if (buttonShiftPressed) {
+    return;
+  }
+  let fullPath = getCurrentDirectoryPathForPanel(activePanelIndex) + '\\' + panelsObj[activePanelIndex][activePanelElement.id].name;
+  let firstMessage = `<div>Do you really want to move the following item?</div><div>${fullPath}</div>`;
+  let secondMessage = `<div>Do you really want to move the selected items?</div>`;
+  let urlPrefix = '/api/move_request/';
+  handleOperationOnSelection(firstMessage, secondMessage, urlPrefix,
+    (res) => {
+      console.log(res);
+    }, (err) => {
+      console.log(err);
+    });
 }
 
 function keyPressUpCallbackRenameFileFolder() {
@@ -736,10 +740,7 @@ function keyPressUpCallbackRenameFileFolder() {
   }
   let message = `<div>Enter the new name of the file:</div>`;
   showInputModal(message, panelsObj[activePanelIndex][id].name, (confirmResult, newFileName) => {
-    if (!confirmResult) {
-      return;
-    }
-    if (newFileName.length == 0 || oldName == newFileName) {
+    if (!confirmResult || newFileName.length == 0 || oldName == newFileName) {
       return;
     }
     let url = encodeURIComponent("/api/rename_request/" + inputModalPanelIndex);
@@ -756,63 +757,42 @@ function keyPressUpCallbackRenameFileFolder() {
 
 function keyPressUpCallbackCreateFolder() {
   showInputModal('Create the folder:', '', (confirmResult, folderName) => {
-    if (!confirmResult) {
-      return;
-    }
-    if (folderName.length == 0) {
+    if (!confirmResult || folderName.length == 0) {
       return;
     }
     let url = encodeURIComponent("/api/dirs/" + inputModalPanelIndex);
     httpPOST(url, {
       'directory_name': folderName
-    }, (res) => {
-      // 
-    }, (err) => {
+    }, (res) => {}, (err) => {
       console.log(err);
     });
   });
 }
 
 function keyPressUpCallbackCopyFiles() {
-  console.log("COPY");
+  let fullPath = getCurrentDirectoryPathForPanel(activePanelIndex) + '\\' + panelsObj[activePanelIndex][activePanelElement.id].name;
+  let firstMessage = `<div>Do you really want to copy the following items?</div><div>${fullPath}</div>`;
+  let secondMessage = `<div>Do you really want to copy the selected items?</div>`;
+  let urlPrefix = '/api/copy_request/';
+  handleOperationOnSelection(firstMessage, secondMessage, urlPrefix,
+    (res) => {
+      console.log(res);
+    }, (err) => {
+      console.log(err);
+    });
 }
 
 function keyPressUpCallbackDeleteFileFolder() {
-  let message = null;
-  let deletedItems = [];
-  if (activePanelSelectedFiles.length == 0) {
-    let id = activePanelElement.id;
-    if (panelsObj[activePanelIndex][id].name == '..') {
-      return;
-    }
-    let fullPath = getCurrentDirectoryPathForPanel(activePanelIndex) + '\\' + panelsObj[activePanelIndex][id].name;
-    message = `<div>Do you really want to delete the following file?</div><div>${fullPath}</div>`;
-    deletedItems.push({
-      'file_name': panelsObj[activePanelIndex][id].name
+  let fullPath = getCurrentDirectoryPathForPanel(activePanelIndex) + '\\' + panelsObj[activePanelIndex][activePanelElement.id].name;
+  let firstMessage = `<div>Do you really want to delete the following items?</div><div>${fullPath}</div>`;
+  let secondMessage = `<div>Do you really want to delete the selected items?</div>`;
+  let urlPrefix = '/api/delete_request/';
+  handleOperationOnSelection(firstMessage, secondMessage, urlPrefix,
+    (res) => {
+      console.log(res);
+    }, (err) => {
+      console.log(err);
     });
-  } else {
-    message = `<div>Do you really want to delete the selected items?</div>`;
-    for (let i = 0; i < activePanelSelectedFiles.length; ++i) {
-      let fileName = panelsObj[activePanelIndex][activePanelSelectedFiles[i].id].name;
-      deletedItems.push({
-        'file_name': fileName
-      });
-    }
-  }
-  if (!message || deletedItems.length == 0) {
-    return;
-  }
-  let url = encodeURIComponent("/api/delete_request/" + activePanelIndex);
-  showConfirmModal(message, (result) => {
-    if (result) {
-      httpPOST(url, deletedItems,
-        (result) => {
-          console.log(result);
-        }, (err) => {
-          console.log(err);
-        });
-    }
-  });
 }
 
 function keyPressDownCallbackArrowUp() {
@@ -853,11 +833,8 @@ function keyPressDownCallbackTab(event) {
 function keyPressDownCallbackEnterModal() {
   if (confirmModalIsOpen()) {
     closeConfirmModal(true);
-    return;
-  }
-  if (inputModalIsOpen()) {
+  } else if (inputModalIsOpen()) {
     closeInputModal(true);
-    return;
   }
 }
 

@@ -1,6 +1,10 @@
 # Documentation:
 # https://www.w3resource.com/python-exercises/python-basic-exercise-64.php
 # https://stackoverflow.com/questions/2860153/how-do-i-get-the-parent-directory-in-python/29137365
+# https://stackoverflow.com/questions/1868714/how-do-i-copy-an-entire-directory-of-files-into-an-existing-directory-using-pyth
+# https://stackoverflow.com/questions/8858008/how-to-move-a-file
+# https://datatofish.com/rename-file-python/
+# https://stackoverflow.com/questions/6996603/how-to-delete-a-file-or-folder
 
 import os
 import time
@@ -48,23 +52,22 @@ class TotalCommander:
     def panels_same_directory(self, panel_1, panel_2):
         return self.paths[panel_1] == self.paths[panel_2]
 
-    def check_existence(self, active_panel, name):
-        item_path = os.path.join(self.paths[active_panel], name)
-        if not os.path.exists(item_path):
+    def check(self, callback, param):
+        if not callback(param):
             return False
         return True
+
+    def check_existence(self, active_panel, name):
+        item_path = os.path.join(self.paths[active_panel], name)
+        return self.check(os.path.exists, item_path)
 
     def check_file_existence(self, active_panel, file_name):
         file_path = os.path.join(self.paths[active_panel], file_name)
-        if not os.path.isfile(file_path):
-            return False
-        return True
+        return self.check(os.path.isfile, file_path)
 
     def check_directory_existence(self, active_panel, directory_name):
         dir_path = os.path.join(self.paths[active_panel], directory_name)
-        if not os.path.isdir(dir_path):
-            return False
-        return True
+        return self.check(os.path.isdir, dir_path)
 
     def get_file_content(self, active_panel, file_name):
         file_path = os.path.join(self.paths[active_panel], file_name)
@@ -103,46 +106,39 @@ class TotalCommander:
             return False
         return True
 
-    def delete_file(self, active_panel, file_name):
-        file_path = os.path.join(self.paths[active_panel], file_name)
-
+    def delete(self, callback, path):
         try:
-            os.remove(file_path)
+            callback(path)
         except:
             return False
-
         return True
+
+    def delete_file(self, active_panel, file_name):
+        return self.delete(os.remove, os.path.join(self.paths[active_panel], file_name))
 
     def delete_directory(self, active_panel, directory_name):
         if directory_name == '.' or directory_name == '..':
             return False
-        dir_path = os.path.join(self.paths[active_panel], directory_name)
+        return self.delete(shutil.rmtree, os.path.join(self.paths[active_panel], directory_name))
+
+    def move_copy(self, source_panel, target_panel, item_name, callback):
+        source_path = os.path.join(self.paths[source_panel], item_name)
+        target_path = os.path.join(self.paths[target_panel], item_name)
 
         try:
-            shutil.rmtree(dir_path)
+            callback(source_path, target_path)
         except:
             return False
         return True
 
     def move(self, source_panel, target_panel, item_name):
-        source_path = os.path.join(self.paths[source_panel], item_name)
-        target_path = os.path.join(self.paths[target_panel], item_name)
+        return self.move_copy(source_panel, target_panel, item_name, shutil.move)
 
-        try:
-            shutil.move(source_path, target_path)
-        except:
-            return False
-        return True
+    def copy_file(self, source_panel, target_panel, item_name):
+        return self.move_copy(source_panel, target_panel, item_name, shutil.copy2)
 
-    def copy(self, source_panel, target_panel, item_name):
-        source_path = os.path.join(self.paths[source_panel], item_name)
-        target_path = os.path.join(self.paths[target_panel], item_name)
-
-        try:
-            shutil.copy2(source_path, target_path)
-        except:
-            return False
-        return True
+    def copy_dir(self, source_panel, target_panel, item_name):
+        return self.move_copy(source_panel, target_panel, item_name, shutil.copytree)
 
     def get_all(self, active_panel):
         if not self.valid_active_panel(active_panel):
