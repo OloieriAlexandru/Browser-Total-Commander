@@ -253,7 +253,11 @@ def create_dir(panel_index):
     if not tot_comm.create_directory(panel_index, dir_name):
         return create_error_message('Creation of directory {} has failed!'.format(dir_name))
 
-    return create_success_response('true', tot_comm, reload_panels=[panel_index])
+    panels_to_reload = [panel_index]
+    if tot_comm.panels_same_directory(panel_index, 1 - panel_index):
+        panels_to_reload.append(1 - panel_index)
+
+    return create_success_response('true', tot_comm, reload_panels=panels_to_reload)
 
 
 @app.route("/api/files/<int:panel_index>", methods=['POST'])
@@ -279,7 +283,11 @@ def create_file(panel_index):
     if not tot_comm.create_file(panel_index, file_name):
         return create_error_message('Creation of file {} has failed!'.format(file_name))
 
-    return create_success_response('true', tot_comm, reload_panels=[panel_index])
+    panels_to_reload = [panel_index]
+    if tot_comm.panels_same_directory(panel_index, 1 - panel_index):
+        panels_to_reload.append(1 - panel_index)
+
+    return create_success_response('true', tot_comm, reload_panels=panels_to_reload)
 
 
 @app.route("/api/files/<int:panel_index>/<string:file_name>", methods=['PUT'])
@@ -305,7 +313,11 @@ def update_file(panel_index, file_name):
     tot_comm.update_file_content(
         panel_index, file_name, request.json['content'])
 
-    return create_success_response('true', tot_comm, reload_panels=[panel_index])
+    panels_to_reload = [panel_index]
+    if tot_comm.panels_same_directory(panel_index, 1 - panel_index):
+        panels_to_reload.append(1 - panel_index)
+
+    return create_success_response('true', tot_comm, reload_panels=panels_to_reload)
 
 
 @app.route("/api/rename_request/<int:panel_index>", methods=['POST'])
@@ -344,7 +356,11 @@ def rename_file_directory(panel_index):
     else:
         return create_error_message("Invalid old name {} in panel {}!".format(old_name, panel_index))
 
-    return create_success_response('true', tot_comm, reload_panels=[panel_index])
+    panels_to_reload = [panel_index]
+    if tot_comm.panels_same_directory(panel_index, 1 - panel_index):
+        panels_to_reload.append(1 - panel_index)
+
+    return create_success_response('true', tot_comm, reload_panels=panels_to_reload)
 
 
 @app.route("/api/delete_request/<int:panel_index>", methods=['POST'])
