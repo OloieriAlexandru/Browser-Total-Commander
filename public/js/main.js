@@ -78,6 +78,7 @@ const BUTTON_RENAME_FILE_FOLDER = 'Digit6';
 const BUTTON_MOVE_FILE_FOLDER = 'Digit6';
 const BUTTON_CREATE_FOLDER = 'Digit7';
 const BUTTON_DELETE_FILE_FOLDER = 'Digit8';
+const BUTTON_SAVE_SETUP = 'Digit9';
 
 var keyPressUpCallbacks = {};
 var keyPressDownCallbacks = {};
@@ -492,6 +493,10 @@ function initApp() {
     replacePanelInfo(0, res.res.left_panel);
     replacePanelInfo(1, res.res.right_panel);
 
+    let decodedToken = getDecodedPathsToken();
+    activePanelIndex = decodedToken['state_panel'];
+    activePanelFileIndexes[activePanelIndex] = decodedToken['state_panel_element_index'];
+
     changeActivePanel(activePanelIndex, null);
     updatePanelPaths();
   }, (err) => {
@@ -520,6 +525,7 @@ function initKeyPressArrays() {
   keyPressUpCallbacks[BUTTON_RENAME_FILE_FOLDER] = [];
   keyPressUpCallbacks[BUTTON_CREATE_FOLDER] = [];
   keyPressUpCallbacks[BUTTON_DELETE_FILE_FOLDER] = [];
+  keyPressUpCallbacks[BUTTON_SAVE_SETUP] = [];
 }
 
 function initKeyPressDownCallbacks() {
@@ -555,6 +561,8 @@ function initKeyPressUpCallbacks() {
 
   keyPressUpCallbacks[BUTTON_CREATE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackCreateFolder).addCheck(screenIsMain).build());
   keyPressUpCallbacks[BUTTON_DELETE_FILE_FOLDER].push(new KeyPressInfoBuilder(keyPressUpCallbackDeleteFileFolder).addCheck(screenIsMain).build());
+
+  keyPressUpCallbacks[BUTTON_SAVE_SETUP].push(new KeyPressInfoBuilder(keyPressUpCallbackSaveSetup).build());
 }
 
 window.onload = initApp();
@@ -795,6 +803,16 @@ function keyPressUpCallbackDeleteFileFolder() {
     });
 }
 
+function keyPressUpCallbackSaveSetup() {
+  let url = encodeURIComponent("/api/setup/" + activePanelIndex + "/" + activePanelFileIndexes[activePanelIndex]);
+  httpPOST(url, {},
+    (res) => {
+      console.log(res);
+    }, (err) => {
+      console.log(err);
+    });
+}
+
 function keyPressDownCallbackArrowUp() {
   if (activePanelElement == null) {
     return;
@@ -964,5 +982,7 @@ function onButtonAction(type) {
     keyPressUpCallbackCreateFolder();
   } else if (type == 'delete') {
     keyPressUpCallbackDeleteFileFolder();
+  } else if (type == 'saveSetup') {
+    keyPressUpCallbackSaveSetup();
   }
 }

@@ -2,7 +2,7 @@
 # https://flask.palletsprojects.com/en/1.1.x/quickstart/#a-minimal-application
 # https://flask-restplus.readthedocs.io/en/stable/errors.html
 
-from flask import Flask
+from flask import Flask, json
 from flask import render_template
 from flask import request
 from flask import jsonify
@@ -107,6 +107,7 @@ def validate_request(panel_index):
         abort(make_response(create_error_message("Invalid JWT token!"), 400))
 
     tot_comm = total_commander.TotalCommander(token[0], token[1])
+    tot_comm.set_token(token[2])
 
     if not tot_comm.init():
         abort(make_response(create_error_message(
@@ -141,6 +142,7 @@ def get_all():
             default = True
         else:
             tot_comm = total_commander.TotalCommander(res[0], res[1])
+            tot_comm.set_token(res[2])
     else:
         default = True
 
@@ -453,6 +455,25 @@ def copy_files_directories(panel_index):
         return create_error_message("Invalid request body! Expecting an array of items to copy!")
 
     return handle_move_copy_requests(panel_index, tot_comm, tot_comm.copy_file, tot_comm.copy_dir)
+
+
+@app.route("/api/setup/<int:panel_index>/<int:panel_element_index>", methods=['POST'])
+def save_setup(panel_index, panel_element_index):
+    """ Updates the saved state from the JWT
+
+    :param panel_index: The new default panel_index (used when the app is opened)
+    :param panel_element_index: The index of the element from the panel that will be active when the app is opened
+    :rtype: A flask.Response object, having a JSON object as body
+    :rtype: flask.Response
+
+    """
+    tot_comm = validate_request(panel_index)
+    paths = tot_comm.get_paths()
+    new_token = token_helper.encode_panels_paths(
+        paths[0], paths[1], panel_index, panel_element_index)
+    return jsonify(add_token({
+        'success': 'true'
+    }, new_token))
 
 
 if __name__ == "__main__":

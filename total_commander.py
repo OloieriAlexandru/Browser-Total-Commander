@@ -29,12 +29,33 @@ class TotalCommander:
 
         """
         self.paths = []
+        self.token = None
         if default:
             self.paths.append(DEFAULT_PATH)
             self.paths.append(DEFAULT_PATH)
         else:
             self.paths.append(path_left)
             self.paths.append(path_right)
+
+    def set_token(self, token):
+        """ Sets the JWT token associated with the object
+
+        :param token: The JWT token
+        :rtype: void
+
+        """
+        self.token = token
+
+    def get_state_from_token(self):
+        """ Returns the saved state from the token
+
+        :return: A tuple containing the panel and the index of the element from the panel
+        :rtype: tuple
+
+        """
+        if self.token is None or 'state_panel' not in self.token:
+            return (0, 0)
+        return (self.token['state_panel'], self.token['state_panel_element_index'])
 
     def valid_active_panel(self, active_panel):
         """ Checks if the parameter is a valid panel index
